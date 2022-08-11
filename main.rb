@@ -1,8 +1,11 @@
 # frozen_string_literal: true
 
 class Cell
+  attr_accessor :next_status
+
   def initialize
     @alive = false
+    @next_status = false
   end
 
   def live
@@ -38,26 +41,54 @@ class Grid
     array
   end
 
-	def get_cell(row, column)
-		@grid[row][column]
-	end
+  def get_cell(row, column)
+    @grid[row][column]
+  end
+
+  def update
+    @height.times do |row|
+      @width.times do |column|
+        cell = @grid[row][column]
+        if cell.next_status
+          cell.live
+        else
+          cell.kill
+        end
+      end
+    end
+  end
 end
 
 class Game
   def initialize(input)
+    @input = input
     @grid = Grid.new(input)
   end
 
   def iterate
+    # next_generator = Grid.new(@input)
     @grid.height.times do |row|
       @grid.width.times do |column|
-        check_neighbors(row, column)
+        @grid.get_cell(row, column).next_status = game_rules(row, column)
       end
+    end
+    @grid.update
+  end
+
+  def show_new
+    @grid.height.times do |row|
+      @grid.width.times do |column|
+        if @grid.get_cell(row, column).next_status
+          print '*'
+        else
+          print '.'
+        end
+      end
+      puts ' '
     end
   end
 
   def check_neighbors(row, col)
-		
     directions = [
       [col - 1, row - 1], # upper left neighbor
       [col, row - 1], # upper middle
@@ -73,12 +104,19 @@ class Game
     # puts "#{@grid.height}, #{@grid.width}"
     directions.each do |posx, posy|
       # puts posx, posy
-      if ((posx >= 0) && (posy >= 0) && (posx < @grid.width) && (posy < @grid.height))
-				# puts @grid[posy][posx].alive?
-        neighbors += 1 if @grid.get_cell(posy, posx).alive?
-      end
+      next unless (posx >= 0) && (posy >= 0) && (posx < @grid.width) && (posy < @grid.height) && @grid.get_cell(posy,
+                                                                                                                posx).alive?
+
+      # puts @grid[posy][posx].alive?
+      neighbors += 1
     end
-    puts "x: #{col} y: #{row}, #{neighbors}"
+    neighbors
+  end
+
+  def game_rules(row, column)
+    cell = @grid.get_cell(row, column)
+    neighbor = check_neighbors(row, column)
+    (cell.alive? && [2, 3].include?(neighbor) || (!cell.alive? && neighbor == 3))
   end
 end
 
@@ -92,3 +130,5 @@ data = open_file('generation.text')
 
 game = Game.new(data)
 game.iterate
+
+game.show_new
